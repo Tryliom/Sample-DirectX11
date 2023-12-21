@@ -3,23 +3,22 @@
 #include "input.h"
 
 #define COBJMACROS
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
 #include <d3d11.h>
 #include <dxgi1_3.h>
 #include <d3dcompiler.h>
 #include <dxgidebug.h>
-#include <DirectXMath.h>
+#include <directxmath.h>
 
 #define _USE_MATH_DEFINES
-#include <cmath>
-#include <cfloat>
-#include <cstring>
-#include <cstddef>
+#include <math.h>
+#include <float.h>
+#include <string.h>
+#include <stddef.h>
 
 // replace this with your favorite Assert() implementation
 #include <intrin.h>
 #include <vector>
+#include <iostream>
 #define Assert(cond) do { if (!(cond)) __debugbreak(); } while (0)
 #define AssertHR(hr) Assert(SUCCEEDED(hr))
 
@@ -42,13 +41,22 @@ static LRESULT CALLBACK WindowProc(HWND wnd, UINT msg, WPARAM wparam, LPARAM lpa
   switch (msg) {
     case WM_DESTROY:PostQuitMessage(0);
       return 0;
-    default:input::OnInput(msg, wparam, lparam);
+    default:
+      input::OnInput(msg, wparam, lparam);
   }
 
   return DefWindowProcW(wnd, msg, wparam, lparam);
 }
 
 int WINAPI WinMain(HINSTANCE instance, HINSTANCE previnstance, LPSTR cmdline, int cmdshow) {
+  // Allocate a console for this application
+  AllocConsole();
+
+  // Redirect the CRT standard input, output and error handles to the console
+  freopen_s((FILE**)stdin, "CONIN$", "r", stdin);
+  freopen_s((FILE**)stdout, "CONOUT$", "w", stdout);
+  freopen_s((FILE**)stderr, "CONOUT$", "w", stderr);
+
   // register window class to have custom WindowProc callback
   WNDCLASSEXW wc =
       {
@@ -470,7 +478,6 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE previnstance, LPSTR cmdline, in
       }
       TranslateMessage(&msg);
       DispatchMessageW(&msg);
-      continue;
     }
 
     // get current size for window client area
@@ -550,10 +557,9 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE previnstance, LPSTR cmdline, in
 
       // setup 4x4c rotation matrix in uniform
       {
-        if (input::IsKeyHeld(0x57)) {
-          angle -= delta * 2.0f * (float) Math::Pi / 20.0f; // full rotation in 20 seconds
+        if (input::IsMouseButtonHeld(input::MouseButton::RIGHT)) {
+          angle += input::GetMouseDelta().X * 0.01f;
         }
-        //angle += delta * 2.0f * (float) Math::Pi / 20.0f; // full rotation in 20 seconds
         angle = fmodf(angle, 2.0f * (float) Math::Pi);
 
         float aspect = (float) height / width;
@@ -561,8 +567,8 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE previnstance, LPSTR cmdline, in
         static float time = 0.0f;
         time += 0.016f;
         static const float radius = 10.0f;
-        float camX = sin(time) * radius;
-        float camZ = cos(time) * radius;
+        float camX = input::GetMousePosition().X * 0.01f;
+        float camZ = input::GetMousePosition().Y * 0.01f;
 
         DirectX::XMMATRIX model = DirectX::XMMatrixRotationY(angle);
 

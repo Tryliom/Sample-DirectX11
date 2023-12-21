@@ -43,10 +43,10 @@ void OnInput(UINT msg, WPARAM wParam, LPARAM lParam) {
     case WM_MOUSEWHEEL: _mouseWheelDelta = static_cast<float>(GET_WHEEL_DELTA_WPARAM(wParam));
       break;
     case WM_MOUSEMOVE:
-      _mouseDelta.X = static_cast<float>(GET_X_LPARAM(lParam));
-      _mouseDelta.Y = static_cast<float>(GET_Y_LPARAM(lParam));
+      const auto old_mouse_position = _mousePosition;
       _mousePosition.X = static_cast<float>(GET_X_LPARAM(lParam));
       _mousePosition.Y = static_cast<float>(GET_Y_LPARAM(lParam));
+      _mouseDelta = _mousePosition - old_mouse_position;
       break;
   }
 }
@@ -78,16 +78,16 @@ bool IsKeyHeld(int key) {
   return _keysHeld[key];
 }
 
-bool IsMouseButtonPressed(int button) {
-  return _mouseButtonsPressed[button];
+bool IsMouseButtonPressed(MouseButton button) {
+  return _mouseButtonsPressed[static_cast<int>(button)];
 }
 
-bool IsMouseButtonReleased(int button) {
-  return _mouseButtonsReleased[button];
+bool IsMouseButtonReleased(MouseButton button) {
+  return _mouseButtonsReleased[static_cast<int>(button)];
 }
 
-bool IsMouseButtonHeld(int button) {
-  return _mouseButtonsHeld[button];
+bool IsMouseButtonHeld(MouseButton button) {
+  return _mouseButtonsHeld[static_cast<int>(button)];
 }
 
 Math::Vec2F GetMousePosition() {

@@ -2,8 +2,9 @@
 
 #include "math/Vec2.h"
 
+#include <windows.h>
+
 #include <vector>
-#include <minwindef.h>
 
 struct Vertex {
   float position[2];

@@ -2,8 +2,9 @@
 
 #include "math/Vec2.h"
 
-#include <windows.h>
-#include <windowsx.h>
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <Windowsx.h>
 
 namespace input {
 enum class MouseButton {
