@@ -1,0 +1,4 @@
+[bB]uild/
+.vscode/
+cmake-build-*/
+.idea/
