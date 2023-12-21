@@ -1,4 +1,4 @@
-#include "../include/geometry.h"
+#include "geometry.h"
 
 UINT GeometryBuilder::GetVerticesSize() const {
   return static_cast<UINT>(vertices.size() * sizeof(vertices[0]));

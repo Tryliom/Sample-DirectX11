@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Vec2.h"
+#include "math/Vec2.h"
 
 #include <vector>
 #include <minwindef.h>

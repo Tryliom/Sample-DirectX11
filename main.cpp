@@ -1,5 +1,6 @@
 // example how to set up D3D11 rendering on Windows in C
-#include "include/geometry.h"
+#include "geometry.h"
+#include "input.h"
 
 #define COBJMACROS
 #define WIN32_LEAN_AND_MEAN
@@ -8,12 +9,13 @@
 #include <dxgi1_3.h>
 #include <d3dcompiler.h>
 #include <dxgidebug.h>
+#include <DirectXMath.h>
 
 #define _USE_MATH_DEFINES
-#include <math.h>
-#include <float.h>
-#include <string.h>
-#include <stddef.h>
+#include <cmath>
+#include <cfloat>
+#include <cstring>
+#include <cstddef>
 
 // replace this with your favorite Assert() implementation
 #include <intrin.h>
@@ -40,6 +42,7 @@ static LRESULT CALLBACK WindowProc(HWND wnd, UINT msg, WPARAM wparam, LPARAM lpa
   switch (msg) {
     case WM_DESTROY:PostQuitMessage(0);
       return 0;
+    default:input::OnInput(msg, wparam, lparam);
   }
 
   return DefWindowProcW(wnd, msg, wparam, lparam);
@@ -191,31 +194,11 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE previnstance, LPSTR cmdline, in
   GeometryBuilder geometryBuilder = {};
 
   geometryBuilder.AddQuad({
-    {0.5f, 0.5f},
-    {0.5f, -0.5f},
-    {-0.5f, -0.5f},
-    {-0.5f, 0.5f}
-  });
-
-  // Quad
-  {
-    Vertex v0 = {{0.5f, 0.5f}, {50, 50}, {1, 0, 0}};
-    Vertex v1 = {{0.5f, -0.5f}, {50, 0}, {0, 1, 0}};
-    Vertex v2 = {{-0.5f, -0.5f}, {0, 0}, {0, 0, 1}};
-    Vertex v3 = {{-0.5f, +0.5f}, {0, 50}, {1, 1, 1}};
-
-    geometryBuilder.vertices.push_back(v0);
-    geometryBuilder.vertices.push_back(v1);
-    geometryBuilder.vertices.push_back(v2);
-    geometryBuilder.vertices.push_back(v3);
-
-    geometryBuilder.indices.push_back(0);
-    geometryBuilder.indices.push_back(1);
-    geometryBuilder.indices.push_back(3);
-    geometryBuilder.indices.push_back(1);
-    geometryBuilder.indices.push_back(2);
-    geometryBuilder.indices.push_back(3);
-  }
+                              {0.5f, 0.5f},
+                              {0.5f, -0.5f},
+                              {-0.5f, -0.5f},
+                              {-0.5f, 0.5f}
+                          });
 
   ID3D11Buffer *vertex_buffer;
   {
@@ -477,6 +460,8 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE previnstance, LPSTR cmdline, in
   DWORD currentHeight = 0;
 
   for (;;) {
+    input::Update();
+
     // process all incoming Windows messages
     MSG msg;
     if (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
@@ -565,21 +550,41 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE previnstance, LPSTR cmdline, in
 
       // setup 4x4c rotation matrix in uniform
       {
-        angle += delta * 2.0f * (float) M_PI / 20.0f; // full rotation in 20 seconds
-        angle = fmodf(angle, 2.0f * (float) M_PI);
+        if (input::IsKeyHeld(0x57)) {
+          angle -= delta * 2.0f * (float) Math::Pi / 20.0f; // full rotation in 20 seconds
+        }
+        //angle += delta * 2.0f * (float) Math::Pi / 20.0f; // full rotation in 20 seconds
+        angle = fmodf(angle, 2.0f * (float) Math::Pi);
 
         float aspect = (float) height / width;
-        float matrix[16] =
-            {
-                cosf(angle) * aspect, -sinf(angle), 0, 0,
-                sinf(angle) * aspect, cosf(angle), 0, 0,
-                0, 0, 0, 0,
-                0, 0, 0, 1,
-            };
+        // View matrix.
+        static float time = 0.0f;
+        time += 0.016f;
+        static const float radius = 10.0f;
+        float camX = sin(time) * radius;
+        float camZ = cos(time) * radius;
+
+        DirectX::XMMATRIX model = DirectX::XMMatrixRotationY(angle);
+
+        DirectX::XMFLOAT3 cam_pos(camX, 0.f, camZ);  // Update camera position
+        DirectX::XMVECTOR v_cam_pos = DirectX::XMLoadFloat3(&cam_pos);
+
+        DirectX::XMFLOAT3 cam_target(0.f, 0.f, 0.f);
+        DirectX::XMVECTOR v_cam_target = DirectX::XMLoadFloat3(&cam_target);
+
+        DirectX::XMFLOAT3 cam_up(0.f, 1.f, 0.f);
+        DirectX::XMVECTOR v_cam_up = DirectX::XMLoadFloat3(&cam_up);
+
+        DirectX::XMMATRIX view =DirectX::XMMatrixLookAtRH(v_cam_pos, v_cam_target, v_cam_up);
+
+        // Projection matrix
+        DirectX::XMMATRIX projection = DirectX::XMMatrixPerspectiveFovRH(DirectX::XMConvertToRadians(45.f), aspect, 0.1f, 100.f);
+
+        auto final_matrix = model * view * projection;
 
         D3D11_MAPPED_SUBRESOURCE mapped;
         context->Map((ID3D11Resource *) ubuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-        memcpy(mapped.pData, matrix, sizeof(matrix));
+        memcpy(mapped.pData, &final_matrix, sizeof(final_matrix));
         context->Unmap((ID3D11Resource *) ubuffer, 0);
       }
 
