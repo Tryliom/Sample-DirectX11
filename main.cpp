@@ -566,7 +566,6 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE previnstance, LPSTR cmdline, in
         // View matrix.
         static float time = 0.0f;
         time += 0.016f;
-        static const float radius = 10.0f;
         float camX = input::GetMousePosition().X * 0.01f;
         float camZ = input::GetMousePosition().Y * 0.01f;
 
